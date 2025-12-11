@@ -1,0 +1,10 @@
+body{font-family: Arial, Helvetica, sans-serif;padding:20px}
+.container{max-width:900px;margin:0 auto}
+.header{display:flex;justify-content:space-between;align-items:center}
+.chat-page{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.messages{border:1px solid #ddd;height:300px;overflow:auto;padding:8px;background:#fafafa}
+.msg{margin:6px 0}
+.posts-list .post{border:1px solid #ccc;padding:8px;margin:8px 0}
+.comment-box{display:flex;gap:8px;margin-top:8px}
+input, textarea{padding:8px;border:1px solid #ccc}
+button{padding:8px 12px}

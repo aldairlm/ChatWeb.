@@ -1,0 +1,464 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Chat Web</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #f5f5f5;
+      padding: 20px;
+    }
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      overflow: hidden;
+    }
+    header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    header h1 { font-size: 28px; }
+    button { padding: 10px 16px; border: none; border-radius: 4px; cursor: pointer; font-size: 14px; transition: 0.3s; }
+    button:hover { opacity: 0.9; }
+    .btn-primary { background: #667eea; color: white; }
+    .btn-danger { background: #ef4444; color: white; }
+    .btn-secondary { background: #6b7280; color: white; }
+
+    /* Auth */
+    #auth { padding: 40px; text-align: center; }
+    .auth-container { max-width: 400px; margin: 0 auto; }
+    .auth-form {
+      background: #f9fafb;
+      padding: 20px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      border: 1px solid #e5e7eb;
+    }
+    .auth-form h3 { margin-bottom: 16px; color: #1f2937; }
+    .auth-form input {
+      width: 100%;
+      padding: 12px;
+      margin-bottom: 12px;
+      border: 1px solid #d1d5db;
+      border-radius: 4px;
+      font-size: 14px;
+    }
+    .auth-form input:focus { outline: none; border-color: #667eea; box-shadow: 0 0 0 3px rgba(102,126,234,0.1); }
+    .auth-form button { width: 100%; }
+
+    /* Main */
+    #main { display: none; }
+    .main-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; padding: 20px; min-height: calc(100vh - 80px); }
+    .section { background: #f9fafb; padding: 16px; border-radius: 8px; border: 1px solid #e5e7eb; overflow-y: auto; max-height: 600px; }
+    .section h3 { margin-bottom: 12px; color: #1f2937; }
+
+    /* Chat */
+    #chat {
+      background: white;
+      border: 1px solid #e5e7eb;
+      border-radius: 4px;
+      height: 350px;
+      overflow-y: auto;
+      padding: 12px;
+      margin-bottom: 12px;
+    }
+    .msg {
+      margin: 8px 0;
+      padding: 8px 12px;
+      background: #eff6ff;
+      border-left: 3px solid #667eea;
+      border-radius: 4px;
+      font-size: 13px;
+    }
+    .msg strong { color: #667eea; }
+    .msg.me { background: #dcfce7; border-left-color: #10b981; }
+    .chat-input { display: flex; gap: 8px; }
+    .chat-input input { flex: 1; padding: 10px; border: 1px solid #d1d5db; border-radius: 4px; font-size: 13px; }
+    .chat-input button { padding: 10px 16px; }
+
+    /* Posts */
+    #postContent { width: 100%; padding: 12px; border: 1px solid #d1d5db; border-radius: 4px; font-size: 13px; font-family: inherit; margin-bottom: 8px; }
+    #createPost { width: 100%; margin-bottom: 16px; }
+    .post {
+      background: white;
+      padding: 12px;
+      margin: 8px 0;
+      border-radius: 4px;
+      border: 1px solid #d1d5db;
+    }
+    .post-author { font-weight: bold; color: #667eea; font-size: 13px; margin-bottom: 4px; }
+    .post-content { margin: 8px 0; font-size: 13px; color: #374151; }
+    .post-actions { display: flex; gap: 8px; margin: 8px 0; }
+    .post-actions button { padding: 6px 12px; font-size: 12px; }
+    .comments { margin-top: 8px; padding: 8px; background: #f3f4f6; border-radius: 4px; font-size: 12px; }
+    .comment { margin: 4px 0; }
+    .comment strong { color: #667eea; }
+    .comment-input { display: flex; gap: 4px; margin-top: 6px; }
+    .comment-input input { flex: 1; padding: 6px; border: 1px solid #d1d5db; border-radius: 3px; font-size: 12px; }
+    .comment-input button { padding: 6px 10px; font-size: 11px; }
+
+    @media (max-width: 768px) {
+      .main-layout { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>💬 Chat Web</h1>
+      <div id="headerRight" style="display:none;">
+        <span id="userDisplay" style="margin-right:16px;"></span>
+        <button class="btn-danger" onclick="logout()">Cerrar sesión</button>
+      </div>
+    </header>
+
+    <div id="auth">
+      <div class="auth-container">
+        <div class="auth-form">
+          <h3>Iniciar Sesión</h3>
+          <input id="loginUser" type="text" placeholder="Usuario" />
+          <input id="loginPass" type="password" placeholder="Contraseña" />
+          <button class="btn-primary" onclick="handleLogin()">Entrar</button>
+        </div>
+
+        <div class="auth-form">
+          <h3>Crear Cuenta</h3>
+          <input id="regUser" type="text" placeholder="Usuario" />
+          <input id="regPass" type="password" placeholder="Contraseña" />
+          <button class="btn-primary" onclick="handleRegister()">Registrarse</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="main">
+      <div class="main-layout">
+        <div class="section">
+          <h3>Chat Global 💬</h3>
+          <div style="text-align:center;margin-bottom:8px;"><button id="loadMoreBtn" class="btn-secondary" style="display:none;">Cargar mensajes anteriores</button></div>
+          <div id="chat"></div>
+          <div class="chat-input">
+            <input id="chatInput" type="text" placeholder="Escribe un mensaje..." />
+            <button class="btn-primary" onclick="sendMessage()">Enviar</button>
+          </div>
+        </div>
+
+        <div class="section">
+          <h3>Publicaciones 📝</h3>
+          <textarea id="postContent" placeholder="¿Qué tienes en mente?" rows="4"></textarea>
+          <button class="btn-primary" id="createPost" onclick="createPost()">Publicar</button>
+          <div id="posts"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
+  <script>
+    const API_BASE = 'http://localhost:4000/api';
+    let socket = null;
+    let currentUser = null;
+    let currentToken = null;
+
+    console.log('🔧 Chat Web inicializado. API_BASE:', API_BASE);
+
+    // Verificar conexión al backend al cargar
+    fetch(`http://localhost:4000/health`)
+      .then(r => r.json())
+      .then(d => console.log('✅ Backend conectado:', d))
+      .catch(e => console.error('❌ Backend no disponible:', e));
+
+    // Init
+    let messagesPage = 1;
+    const MESSAGES_LIMIT = 40;
+
+    window.addEventListener('load', () => {
+      const saved = localStorage.getItem('chat_user');
+      const loadMoreBtn = document.getElementById('loadMoreBtn');
+      if (loadMoreBtn) loadMoreBtn.onclick = () => loadMoreMessages();
+      if (saved) {
+        const data = JSON.parse(saved);
+        currentUser = data.username;
+        currentToken = data.token;
+        showMain();
+        connectSocket();
+        loadMessages(1);
+        loadPosts();
+      }
+    });
+
+    async function handleLogin() {
+      const user = document.getElementById('loginUser').value.trim();
+      const pass = document.getElementById('loginPass').value.trim();
+      if (!user || !pass) return alert('Completa los campos');
+      if (user.length < 3) return alert('El usuario debe tener al menos 3 caracteres');
+      if (pass.length < 6) return alert('La contraseña debe tener al menos 6 caracteres');
+      try {
+        console.log('Intentando login a:', `${API_BASE}/auth/login`);
+        const res = await fetch(`${API_BASE}/auth/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username: user, password: pass })
+        });
+        const data = await res.json();
+        console.log('Respuesta login:', data);
+        if (data.token) {
+          currentUser = data.user.username;
+          currentToken = data.token;
+          localStorage.setItem('chat_user', JSON.stringify({ username: currentUser, token: currentToken }));
+          showMain();
+          connectSocket();
+          loadMessages(1);
+          loadPosts();
+        } else alert(data.message || 'Error en login');
+      } catch (err) {
+        console.error('Error en login:', err);
+        alert('Error de conexión: ' + err.message);
+      }
+    }
+
+    async function handleRegister() {
+      const user = document.getElementById('regUser').value.trim();
+      const pass = document.getElementById('regPass').value.trim();
+      if (!user || !pass) return alert('Completa los campos');
+      if (user.length < 3) return alert('El usuario debe tener al menos 3 caracteres');
+      if (pass.length < 6) return alert('La contraseña debe tener al menos 6 caracteres');
+      try {
+        const res = await fetch(`${API_BASE}/auth/register`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username: user, password: pass })
+        });
+        const data = await res.json();
+        if (data.token) {
+          currentUser = data.user.username;
+          currentToken = data.token;
+          localStorage.setItem('chat_user', JSON.stringify({ username: currentUser, token: currentToken }));
+          showMain();
+          connectSocket();
+          loadMessages(1);
+          loadPosts();
+        } else alert(data.message || 'Error en registro');
+      } catch (err) {
+        console.error(err);
+        alert('Error de conexión');
+      }
+    }
+
+    function logout() {
+      localStorage.removeItem('chat_user');
+      currentUser = null;
+      currentToken = null;
+      if (socket) socket.disconnect();
+      document.getElementById('auth').style.display = 'block';
+      document.getElementById('main').style.display = 'none';
+      document.getElementById('headerRight').style.display = 'none';
+    }
+
+    function showMain() {
+      document.getElementById('auth').style.display = 'none';
+      document.getElementById('main').style.display = 'block';
+      document.getElementById('headerRight').style.display = 'flex';
+      document.getElementById('userDisplay').textContent = `👤 ${currentUser}`;
+    }
+
+    function connectSocket() {
+      if (socket) socket.disconnect();
+      socket = io('http://localhost:4000', { auth: { token: currentToken } });
+      socket.on('connect', () => console.log('socket connected', socket.id));
+      socket.on('chat message', (msg) => {
+        const div = document.createElement('div');
+        const me = (msg.user === currentUser);
+        div.className = 'msg' + (me ? ' me' : '');
+        const time = msg.createdAt ? new Date(msg.createdAt).toLocaleTimeString() : '';
+        div.innerHTML = `<strong>${msg.user}:</strong> ${msg.content} <span style="float:right;color:#6b7280;font-size:11px;">${time}</span>`;
+        document.getElementById('chat').appendChild(div);
+        document.getElementById('chat').scrollTop = document.getElementById('chat').scrollHeight;
+      });
+      // Posts realtime
+      socket.on('post created', (post) => {
+        console.log('post created', post);
+        loadPosts();
+      });
+      socket.on('post commented', ({ postId, comment }) => {
+        console.log('post commented', postId, comment);
+        loadPosts();
+      });
+      socket.on('post reacted', (payload) => {
+        console.log('post reacted', payload);
+        loadPosts();
+      });
+    }
+
+    async function sendMessage() {
+      const input = document.getElementById('chatInput');
+      const msg = input.value.trim();
+      if (!msg) return;
+      socket.emit('chat message', { content: msg });
+      // optimistically add message
+      if (currentUser) {
+        const div = document.createElement('div');
+        div.className = 'msg me';
+        const time = new Date().toLocaleTimeString();
+        div.innerHTML = `<strong>${currentUser}:</strong> ${msg} <span style="float:right;color:#6b7280;font-size:11px;">${time}</span>`;
+        document.getElementById('chat').appendChild(div);
+        document.getElementById('chat').scrollTop = document.getElementById('chat').scrollHeight;
+      }
+      input.value = '';
+    }
+
+    async function loadMessages(page = 1) {
+      try {
+        const res = await fetch(`${API_BASE}/messages?page=${page}&limit=${MESSAGES_LIMIT}`);
+        const data = await res.json();
+        const msgs = data.messages || [];
+        const chat = document.getElementById('chat');
+        if (page === 1) chat.innerHTML = '';
+        const fragment = document.createDocumentFragment();
+        msgs.forEach(m => {
+          const div = document.createElement('div');
+          const me = (m.user === currentUser);
+          div.className = 'msg' + (me ? ' me' : '');
+          const time = m.createdAt ? new Date(m.createdAt).toLocaleTimeString() : '';
+          div.innerHTML = `<strong>${m.user}:</strong> ${m.content} <span style="float:right;color:#6b7280;font-size:11px;">${time}</span>`;
+          fragment.appendChild(div);
+        });
+        if (page === 1) {
+          chat.appendChild(fragment);
+          chat.scrollTop = chat.scrollHeight;
+        } else {
+          chat.insertBefore(fragment, chat.firstChild);
+        }
+        messagesPage = page;
+        const loadMoreBtn = document.getElementById('loadMoreBtn');
+        if (loadMoreBtn) {
+          const total = data.total || 0;
+          const fetched = page * MESSAGES_LIMIT;
+          loadMoreBtn.style.display = fetched < total ? 'block' : 'none';
+        }
+      } catch (err) {
+        console.error('Error loading messages:', err);
+      }
+    }
+
+    function loadMoreMessages() { loadMessages(messagesPage + 1); }
+
+    async function loadPosts() {
+      try {
+        const res = await fetch(`${API_BASE}/posts`);
+        const posts = await res.json();
+        const container = document.getElementById('posts');
+        container.innerHTML = '';
+        posts.forEach(p => {
+          const div = document.createElement('div');
+          div.className = 'post';
+          
+          const author = document.createElement('div');
+          author.className = 'post-author';
+          author.textContent = p.author?.username || 'anon';
+          
+          const content = document.createElement('div');
+          content.className = 'post-content';
+          content.textContent = p.content;
+          
+          const actions = document.createElement('div');
+          actions.className = 'post-actions';
+          
+          const btnReact = document.createElement('button');
+          btnReact.className = 'btn-secondary';
+          btnReact.textContent = `❤️ ${p.reactions?.length || 0}`;
+          btnReact.onclick = () => reactPost(p._id);
+          
+          actions.appendChild(btnReact);
+          
+          const comments = document.createElement('div');
+          comments.className = 'comments';
+          (p.comments || []).forEach(c => {
+            const cDiv = document.createElement('div');
+            cDiv.className = 'comment';
+            cDiv.innerHTML = `<strong>${c.author.username}:</strong> ${c.content}`;
+            comments.appendChild(cDiv);
+          });
+          
+          const commentBox = document.createElement('div');
+          commentBox.className = 'comment-input';
+          const commentInput = document.createElement('input');
+          commentInput.type = 'text';
+          commentInput.placeholder = 'Comentar...';
+          const commentBtn = document.createElement('button');
+          commentBtn.className = 'btn-secondary';
+          commentBtn.textContent = 'Comentar';
+          commentBtn.onclick = () => {
+            if (commentInput.value.trim()) {
+              commentPost(p._id, commentInput.value);
+              commentInput.value = '';
+            }
+          };
+          commentBox.appendChild(commentInput);
+          commentBox.appendChild(commentBtn);
+          comments.appendChild(commentBox);
+          
+          div.appendChild(author);
+          div.appendChild(content);
+          div.appendChild(actions);
+          div.appendChild(comments);
+          container.appendChild(div);
+        });
+      } catch (err) {
+        console.error('Error loading posts:', err);
+      }
+    }
+
+    async function createPost() {
+      const content = document.getElementById('postContent').value.trim();
+      if (!content) return alert('Escribe algo');
+      try {
+        await fetch(`${API_BASE}/posts`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${currentToken}` },
+          body: JSON.stringify({ content })
+        });
+        document.getElementById('postContent').value = '';
+        loadPosts();
+      } catch (err) {
+        console.error(err);
+        alert('Error al crear publicación');
+      }
+    }
+
+    async function reactPost(postId) {
+      try {
+        await fetch(`${API_BASE}/posts/${postId}/react`, {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${currentToken}` }
+        });
+        loadPosts();
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    async function commentPost(postId, content) {
+      try {
+        await fetch(`${API_BASE}/posts/${postId}/comments`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${currentToken}` },
+          body: JSON.stringify({ content })
+        });
+        loadPosts();
+      } catch (err) {
+        console.error(err);
+      }
+    }
+  </script>
+</body>
+</html>
